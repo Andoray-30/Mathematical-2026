@@ -1,7 +1,7 @@
 """
 Generate Word document from markdown source.
 
-Converts paper/final_markdown_for_docx.md to paper/final_paper_draft.docx
+Converts paper/final_markdown_for_docx.md to paper/final_paper_draft_v2.docx
 with proper Chinese academic formatting.
 
 Usage:
@@ -21,9 +21,10 @@ from docx.oxml.ns import qn, nsdecls
 from docx.oxml import parse_xml
 
 # ── paths ────────────────────────────────────────────────────────────────
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).parent.parent
 MD_PATH = ROOT / "paper" / "final_markdown_for_docx.md"
-OUT_PATH = ROOT / "paper" / "final_paper_draft.docx"
+OUT_PATH = ROOT / "paper" / "final_paper_draft_v2.docx"
+EQUATION_DIR = ROOT / "figures" / "equations"
 
 # ── font names ───────────────────────────────────────────────────────────
 FONT_HEI = "SimHei"
@@ -67,6 +68,38 @@ def _add_paragraph(doc, text, font_name, size_pt, bold=False,
     return p
 
 
+def _set_run_subscript(run):
+    rpr = run._element.get_or_add_rPr()
+    for old in rpr.findall(qn("w:vertAlign")):
+        rpr.remove(old)
+    rpr.append(parse_xml(f'<w:vertAlign {nsdecls("w")} w:val="subScript"/>'))
+
+
+def _add_math_runs(paragraph, math_text, default_size, default_bold=False):
+    subscript_pattern = re.compile(r'([A-Za-z]\w*|\\[A-Za-z]+)_\{([^{}]+)\}')
+    pos = 0
+    for match in subscript_pattern.finditer(math_text):
+        if match.start() > pos:
+            run = paragraph.add_run(math_text[pos:match.start()])
+            _set_run_font(run, "Cambria Math", default_size * 0.9, bold=default_bold)
+            run.font.italic = True
+
+        base_run = paragraph.add_run(match.group(1).lstrip('\\'))
+        _set_run_font(base_run, "Cambria Math", default_size * 0.9, bold=default_bold)
+        base_run.font.italic = True
+
+        sub_run = paragraph.add_run(match.group(2))
+        _set_run_font(sub_run, "Cambria Math", default_size * 0.75, bold=default_bold)
+        sub_run.font.italic = True
+        _set_run_subscript(sub_run)
+        pos = match.end()
+
+    if pos < len(math_text):
+        run = paragraph.add_run(math_text[pos:])
+        _set_run_font(run, "Cambria Math", default_size * 0.9, bold=default_bold)
+        run.font.italic = True
+
+
 def _add_formatted_runs(paragraph, text, default_font, default_size, default_bold=False):
     """Parse inline markdown (**bold**, *italic*, $math$) and add runs."""
     # Pattern: **bold** | *italic* | $inline_math$ | plain text
@@ -87,11 +120,7 @@ def _add_formatted_runs(paragraph, text, default_font, default_size, default_bol
             _set_run_font(run, default_font, default_size)
             run.font.italic = True
         elif m.group(3) is not None:
-            # inline math - render as italic text (Word math needs OMML)
-            math_text = m.group(3)
-            run = paragraph.add_run(math_text)
-            _set_run_font(run, "Cambria Math", default_size * 0.9)
-            run.font.italic = True
+            _add_math_runs(paragraph, m.group(3), default_size, default_bold)
         elif m.group(4) is not None:
             # plain text
             plain = m.group(4)
@@ -118,36 +147,24 @@ def _try_latex_to_omml(latex_str: str):
 
 
 def _add_equation_paragraph(doc, latex_str: str, eq_number: str = ""):
-    """Add an equation to the document.
-
-    Tries latex2mathml + OMML conversion. Falls back to formatted text.
-    """
-    # Try full OMML conversion
-    omml_elem = _try_latex_to_omml(latex_str)
-
-    if omml_elem is not None:
-        p = doc.add_paragraph()
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        p.paragraph_format.space_before = Pt(6)
-        p.paragraph_format.space_after = Pt(6)
-        p._element.append(omml_elem)
-        if eq_number:
-            run = p.add_run(f"  ({eq_number})")
-            _set_run_font(run, FONT_SUN, 10.5)
-        return p
-
-    # Fallback: render as formatted text with equation label
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     p.paragraph_format.space_before = Pt(6)
     p.paragraph_format.space_after = Pt(6)
     p.paragraph_format.line_spacing = 1.25
 
-    # Clean up LaTeX for readable fallback display
-    display = _latex_to_readable(latex_str)
-    run = p.add_run(display)
-    _set_run_font(run, "Cambria Math", 11, bold=False)
-    run.font.italic = True
+    image_path = None
+    if eq_number:
+        image_path = EQUATION_DIR / f"eq_{int(eq_number):02d}.png"
+
+    if image_path and image_path.exists():
+        run = p.add_run()
+        run.add_picture(str(image_path), width=Cm(12))
+    else:
+        display = _latex_to_readable(latex_str)
+        run = p.add_run(display)
+        _set_run_font(run, "Cambria Math", 11, bold=False)
+        run.font.italic = True
 
     if eq_number:
         run2 = p.add_run(f"  ({eq_number})")
@@ -282,8 +299,7 @@ def _add_three_line_table(doc, rows: list[list[str]], table_title: str = ""):
             text = row_data[j] if j < len(row_data) else ""
             is_header = (i == 0)
             font_size = 10.0
-            run = p.add_run(text)
-            _set_run_font(run, FONT_SUN, font_size, bold=is_header)
+            _add_formatted_runs(p, text, FONT_SUN, font_size, default_bold=is_header)
 
     # Apply three-line table borders
     tbl = table._tbl
@@ -340,6 +356,8 @@ def _add_figure_placeholder(doc, fig_text: str):
 
     label = m.group(1).strip()
     rel_path = m.group(2).strip()
+    if label.startswith("图1"):
+        rel_path = "figures/final/framework_flowchart_v2.png"
     img_path = ROOT / rel_path if rel_path else None
 
     if img_path and img_path.exists():
@@ -347,6 +365,7 @@ def _add_figure_placeholder(doc, fig_text: str):
         p_img.alignment = WD_ALIGN_PARAGRAPH.CENTER
         p_img.paragraph_format.space_before = Pt(6)
         p_img.paragraph_format.space_after = Pt(3)
+        p_img.paragraph_format.keep_with_next = True
         run = p_img.add_run()
         run.add_picture(str(img_path), width=Cm(14))
 
@@ -615,6 +634,29 @@ def build_document(blocks: list[tuple[str, str]]) -> Document:
 
         # Regular paragraph
         if block_type == "paragraph":
+            if (content.startswith("队伍编号：") or
+                    content.startswith("选题：") or
+                    content.startswith("论文题目：")):
+                p = doc.add_paragraph()
+                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                p.paragraph_format.space_before = Pt(3)
+                p.paragraph_format.space_after = Pt(3)
+                run = p.add_run(content)
+                _set_run_font(run, FONT_HEI, 16, bold=False)
+                continue
+
+            if content.startswith("**关键词**") or content.startswith("关键词"):
+                _add_paragraph(
+                    doc, content, FONT_SUN, 10.5,
+                    alignment=WD_ALIGN_PARAGRAPH.JUSTIFY,
+                    space_before=3,
+                    space_after=3,
+                    line_spacing=1.25,
+                    first_line_indent=21,
+                )
+                doc.add_page_break()
+                continue
+
             # Check if this looks like a table title (e.g., "**表1 ...**")
             if re.match(r'^\*\*表\d+', content):
                 table_title_pending = content.replace('**', '')
