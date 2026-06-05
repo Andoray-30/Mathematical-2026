@@ -1,0 +1,4 @@
+frame_index,timestamp,ssim_prev,frame_diff_mean,brightness_delta,saturation_delta,optical_flow_magnitude_mean,optical_flow_angle_change,instability_score,is_anomaly
+50,2.08,0.8353,6.7422,0.4642,1.1539,1.4517,0.8047,0.1091,True
+53,2.21,0.7985,7.7143,0.1182,0.4329,1.5988,0.7539,0.1276,True
+62,2.58,0.8068,7.6829,0.1364,0.4842,1.7335,0.8898,0.1242,True
