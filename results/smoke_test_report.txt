@@ -1,0 +1,43 @@
+# Smoke Test Report
+
+## 1. Python
+- Python 3.12.10
+- Status: PASS
+
+## 2. Dependencies
+  [OK] numpy
+  [OK] pandas
+  [OK] scipy
+  [OK] sklearn
+  [OK] matplotlib
+  [OK] cv2
+  [OK] skimage
+  [OK] PIL
+  [OK] fitz
+  [OK] pdfplumber
+  [OK] pypdf
+  [OK] docx
+  [OK] openpyxl
+  [OK] xlsxwriter
+  [OK] tqdm
+  [OK] imageio
+- Status: PASS
+
+## 3. FFmpeg
+- FFmpeg not found
+- Status: FAIL
+
+## 4. B题 Files
+  [OK] PDF files: 3
+  [OK] Images: 8
+  [OK] Videos: 1
+  [OK] Template: 2026年第八届中青杯全国大学生数学建模竞赛论文模板.doc
+- Status: PASS
+
+## 5. Directories
+  [OK] results/ writable
+  [OK] figures/ writable
+  [OK] docs/ writable
+  [OK] paper/ writable
+  [OK] support/ writable
+- Status: PASS

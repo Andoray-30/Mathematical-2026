@@ -48,14 +48,17 @@ def combination_weights(ahp_w, entropy_w, method='multiplicative'):
     elif method == 'linear':
         return 0.5 * ahp_w + 0.5 * entropy_w
 
-def topsis(data, weights, positive_indicators, negative_indicators):
+def topsis(data, weights, positive_indicators, negative_indicators, column_names=None):
     data_norm = data / np.sqrt((data**2).sum(axis=0))
     weighted = data_norm * weights
     
     ideal_best = np.zeros(data.shape[1])
     ideal_worst = np.zeros(data.shape[1])
     
-    for j, col in enumerate(data.columns):
+    if column_names is None:
+        column_names = [f"col_{i}" for i in range(data.shape[1])]
+    
+    for j, col in enumerate(column_names):
         if col in positive_indicators:
             ideal_best[j] = weighted[:, j].max()
             ideal_worst[j] = weighted[:, j].min()
@@ -118,7 +121,7 @@ def main():
     combo_weights = combination_weights(ahp_result['weights'], entropy_result['weights'])
     print(f"Combined weights: {combo_weights.round(4)}")
     
-    topsis_result = topsis(data_normalized.values, combo_weights, positive_indicators, negative_indicators)
+    topsis_result = topsis(data_normalized.values, combo_weights, positive_indicators, negative_indicators, metric_columns)
     quality_levels = assign_quality_levels(topsis_result['closeness'])
     
     results_df = pd.DataFrame({

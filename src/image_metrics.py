@@ -4,6 +4,17 @@ import numpy as np
 import csv
 from pathlib import Path
 from skimage.measure import shannon_entropy
+from PIL import Image
+
+def imread_chinese_path(image_path):
+    """Read image with Chinese path using PIL then convert to OpenCV format."""
+    pil_img = Image.open(image_path)
+    if pil_img.mode == 'RGBA':
+        pil_img = pil_img.convert('RGB')
+    elif pil_img.mode == 'L':
+        pil_img = pil_img.convert('RGB')
+    img_array = np.array(pil_img)
+    return cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
 
 def calculate_laplacian_variance(image):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -50,7 +61,12 @@ def calculate_structure_proxy(metrics):
     return score
 
 def process_image(image_path):
-    image = cv2.imread(str(image_path))
+    try:
+        image = imread_chinese_path(image_path)
+    except Exception as e:
+        print(f"  Error reading {image_path}: {e}")
+        return None
+    
     if image is None:
         return None
     
