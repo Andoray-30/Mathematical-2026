@@ -39,46 +39,86 @@
 
 ---
 
-## 多智能体分工
+## 智能体配置与分工
 
-### Sisyphus / mimo-v2.5-pro 负责
+### 模型能力矩阵
 
-- 项目规划
-- 文件结构整理
-- 读取文本文件
-- 编写和运行 Python 脚本
-- 本地环境检查
-- PDF/DOCX/XLSX 解析脚本
-- 图片/视频指标计算
-- 结果表格、Excel、图表生成
-- 论文 Markdown 草稿组织
-- 支撑材料整理
+| 模型 | 图像支持 | 上下文窗口 | 输出限制 | 用途 |
+|------|----------|------------|----------|------|
+| mimo-v2.5-pro | ❌ 文本 | 800K | 65K | 主执行、写作 |
+| gpt-5.5 | ✅ 图像 | 840K | 102K | 多模态、复杂推理 |
+| gemini-3.5-flash | ✅ 图像 | 800K | 51K | 多模态备选 |
+| gemini-3.1-pro-preview | ✅ 图像 | - | - | 多模态专用 |
+| deepseek-v4-flash-free | ❌ 文本 | - | - | 快速任务 |
+| minimax-m3-free | ❌ 文本 | - | - | 低优先级任务 |
 
-### GPT-5.5 Deep Agent 负责
+### 主智能体
 
-- 图片语义理解
-- PDF 页面截图理解
-- 视频关键帧/拼图理解
-- 图像语义保真度审查
-- 视频异常帧语义解释
-- 论文逻辑和表达审稿
+| 智能体 | 模型 | 图像支持 | 擅长工作 |
+|--------|------|----------|----------|
+| **sisyphus** | mimo-v2.5-pro | ❌ | 项目规划、代码编写、文件整理、数据分析、图表生成 |
+| **sisyphus-junior** | gpt-5.5 | ✅ | 任务执行、多模态审查、复杂推理 |
+| **hephaestus** | gpt-5.5 | ✅ | 专用多模态审查、图像分析、视觉异常识别 |
+| **oracle** | gpt-5.5 | ✅ | 架构咨询、复杂问题调试、技术决策 |
+| **multimodal-looker** | gemini-3.1-pro-preview | ✅ | 多模态查看（可能超时） |
 
-### 多模态路由策略
+### 辅助智能体
 
-**Sisyphus 不支持图片输入**，多模态任务路由如下：
+| 智能体 | 模型 | 图像支持 | 擅长工作 |
+|--------|------|----------|----------|
+| **explore** | deepseek-v4-flash-free | ❌ | 代码搜索、模式发现、文件定位 |
+| **librarian** | minimax-m3-free | ❌ | 文档查询、外部资源搜索 |
+| **prometheus** | mimo-v2.5-pro | ❌ | 任务规划、工作流设计 |
+| **metis** | gpt-5.5 | ✅ | 预规划分析、需求澄清 |
+| **momus** | gpt-5.5 | ✅ | 计划审查、质量验证 |
+| **atlas** | mimo-v2.5-pro | ❌ | 通用任务执行 |
 
-| 任务类型 | 执行者 | 说明 |
-|----------|--------|------|
-| 图像技术指标 | Sisyphus | OpenCV/SSIM/光流计算 |
-| 视频时序指标 | Sisyphus | 帧差/光流/异常检测 |
-| 图像语义描述 | GPT-5.5 | 物体/场景/风格识别 |
-| 视觉异常识别 | GPT-5.5 | 伪影/扭曲/不一致 |
-| 语义保真度审查 | GPT-5.5 | 提示词匹配度 |
+### 任务分类
 
-**推荐 Agent**：
-- 首选：`@sisyphus-junior`、`@hephaestus`
-- 备选：`@oracle`、`@metis`、`@momus`
-- 不推荐：`@multimodal-looker`（Gemini 模型可能超时）
+| 分类 | 模型 | 图像支持 | 适用场景 |
+|------|------|----------|----------|
+| **visual-engineering** | gpt-5.5 | ✅ | 前端、UI/UX、设计 |
+| **ultrabrain** | gpt-5.5 | ✅ | 复杂逻辑、算法设计 |
+| **deep** | gpt-5.5 | ✅ | 深度研究、自主问题解决 |
+| **artistry** | gemini-3.1-pro-preview | ✅ | 创意任务、非传统方法 |
+| **quick** | deepseek-v4-flash-free | ❌ | 快速修复、简单修改 |
+| **unspecified-low** | minimax-m3-free | ❌ | 低优先级任务 |
+| **unspecified-high** | mimo-v2.5-pro | ❌ | 高优先级通用任务 |
+| **writing** | mimo-v2.5-pro | ❌ | 文档撰写、论文写作 |
+
+---
+
+## 多模态任务路由
+
+### 图像相关任务
+
+| 任务 | 执行者 | 原因 |
+|------|--------|------|
+| 图像技术指标计算 | Sisyphus (mimo-v2.5-pro) | OpenCV 计算，不需要图像理解 |
+| 图像语义描述 | hephaestus (gpt-5.5) | 需要图像理解能力 |
+| 视觉异常识别 | hephaestus (gpt-5.5) | 需要图像理解能力 |
+| 语义保真度审查 | hephaestus (gpt-5.5) | 需要图像理解能力 |
+| PDF 页面核验 | sisyphus-junior (gpt-5.5) | 需要图像理解能力 |
+
+### 视频相关任务
+
+| 任务 | 执行者 | 原因 |
+|------|--------|------|
+| 视频抽帧 | Sisyphus (mimo-v2.5-pro) | FFmpeg 命令行操作 |
+| 视频时序指标 | Sisyphus (mimo-v2.5-pro) | OpenCV/SSIM 计算 |
+| 关键帧连续性审查 | hephaestus (gpt-5.5) | 需要图像理解能力 |
+| 异常帧语义解释 | hephaestus (gpt-5.5) | 需要图像理解能力 |
+
+### 文本/代码任务
+
+| 任务 | 执行者 | 原因 |
+|------|--------|------|
+| 代码编写 | Sisyphus (mimo-v2.5-pro) | 文本任务，不需要图像 |
+| 数据分析 | Sisyphus (mimo-v2.5-pro) | 数值计算 |
+| 图表生成 | Sisyphus (mimo-v2.5-pro) | matplotlib 代码 |
+| 论文撰写 | Sisyphus (mimo-v2.5-pro) | 文本任务 |
+| 代码搜索 | explore (deepseek) | 快速搜索 |
+| 文档查询 | librarian (minimax) | 文档检索 |
 
 ---
 
