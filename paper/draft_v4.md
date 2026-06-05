@@ -1,0 +1,355 @@
+# AI生成内容的质量评估与参数优化
+
+## 摘要
+
+本文针对AI生成内容（AIGC）质量评估问题，构建"语义保真度-技术质量-结构完整性-时序稳定性"分层评价体系，实现从质量诊断到参数优化建议的闭环映射。
+
+**问题一**，提出三维度无参考图像质量评价指标体系。语义保真度采用等效语义参考描述与结构化缺陷标签融合的评分机制，克服原始提示词缺失的限制；技术质量引入Median-MAD适中型变换处理亮度和饱和度类指标，避免"越大越好"的简单假设；结构完整性结合全局代理指标与局部缺陷惩罚，兼顾整体与细节。
+
+**问题二**，采用AHP-熵权组合赋权TOPSIS方法对8张AI生成图像综合排序。AHP主观权重（0.25, 0.50, 0.25）体现题意导向，熵权法客观权重捕捉样本差异，组合权重兼顾主客观。排序结果表明5.jpg综合质量最高（贴近度0.9867），4.png最低（0.0289）。灰色关联校验Spearman相关系数0.976，敏感性分析表明Top-3排名在6种场景下保持稳定。
+
+**问题三**，建立面向AIGC视频的时序失稳检测模型。引入光流补偿Warp-SSIM，从运动补偿后的残余结构差异角度刻画局部时序不一致性，辅助区分自然运动波动与潜在生成失稳；采用稳健z-score（基于中位数和MAD）进行异常帧检测。对车流视频分析表明，识别出15个候选时序波动帧（占12.5%），多模态审查确认异常帧主要由自然运动导致，视频整体未见严重时序失稳。
+
+最后，构建质量短板到参数优化优先级的逆向映射模型，为生成参数调整提供量化依据。分析表明，当前最优先调整为提高分辨率、增加采样步数、增强局部重绘。
+
+**关键词**：AI生成内容；无参考图像质量评价；AHP-熵权-TOPSIS；时序失稳检测；参数优化建议
+
+---
+
+## 一、问题重述
+
+### 1.1 问题背景
+
+随着扩散模型和生成式AI技术的迅速发展，AI生成内容（AIGC）已成为数字内容生产的重要方式。AIGC质量评估面临三大挑战：单帧质量不稳定、时序连贯性难以保障、生成参数与质量关系不明确。本题要求建立无参考质量评价模型，对图像和视频进行量化评估，并给出参数优化建议。
+
+### 1.2 问题要求
+
+**问题1**：建立无参考图像质量评价（NR-IQA）数学模型，从语义保真度、技术质量、结构完整性三个维度给出指标定义和计算方法，建立加权综合质量指数模型。
+
+**问题2**：基于问题1的模型，对附件1提供的8张AI生成图像进行评估，给出质量排序，分析内容类型对指标敏感性的影响，通过跨模型对比验证可靠性。
+
+**问题3**：建立视频时序质量评估模型，考虑光流连续性、内容一致性、闪烁检测，推导时序失稳必要条件，分析附件2车流视频是否出现时序失稳。
+
+---
+
+## 二、问题分析
+
+### 2.1 三问递进关系
+
+三个问题构成"评价—诊断—优化"的递进链条。问题一建立数学框架，为后续评价提供理论基础；问题二将框架应用于具体样本，通过组合赋权和排序实现综合评价，并验证结果可靠性；问题三将评价从静态图像扩展到动态视频，引入时序失稳检测。最后，参数优化建议形成闭环，从质量短板反推生成参数调整方向。
+
+### 2.2 方法选择依据
+
+本题样本量有限（8张图像、1段视频），不适合训练复杂机器学习模型。因此，本文选择可解释的综合评价方法（AHP-熵权-TOPSIS），而非黑箱预训练模型。该方法具有以下优势：（1）每个指标有明确的物理/统计意义；（2）排序过程可追溯、可复现；（3）适用于小样本场景；（4）便于进行敏感性分析和稳健性验证。
+
+### 2.3 创新点定位
+
+本文的创新不在于AHP、熵权法、TOPSIS等方法本身，而在于：（1）等效语义参考描述与结构化缺陷标签融合的语义保真度评分机制；（2）适中型技术指标变换；（3）光流补偿Warp-SSIM时序失稳检测；（4）质量短板到参数优化优先级的闭环映射。
+
+---
+
+## 三、模型假设
+
+1. **三维度评价假设**：图像质量可由语义保真度、技术质量、结构完整性三个维度综合评价，各维度相对独立且可量化。
+
+2. **组合赋权假设**：AHP判断矩阵能反映题目对各维度的重视程度，熵权法能从数据差异中提取客观权重，两者组合可兼顾主观判断与客观数据。
+
+3. **时序失稳假设**：时序失稳可由SSIM、帧差、亮度突变等指标量化，异常帧是统计意义上的候选波动帧，不等于视觉异常。
+
+4. **参数优化假设**：质量短板可反推生成参数优化方向，参数调整优先级与短板程度和维度权重相关。
+
+5. **相对评价假设**：本文针对给定样本进行无参考评价，不声称大样本泛化。由于题目未提供原始提示词，语义保真度采用等效语义参考描述，即由题面要求与图像可见内容形成结构化参考描述，而非直接匹配原始prompt。
+
+---
+
+## 四、符号说明
+
+| 符号 | 含义 | 单位/范围 |
+|------|------|-----------|
+| $S_{sem}$ | 语义保真度得分 | [0,100] |
+| $S_{tech}$ | 技术质量得分 | [0,100] |
+| $S_{str}$ | 结构完整性得分 | [0,100] |
+| $w_j$ | 第j个维度的组合权重 | [0,1] |
+| $\eta$ | AHP-熵权融合系数 | 0.6 |
+| $C_i$ | 第i个图像的TOPSIS贴近度 | [0,1] |
+| $I_t$ | 第t帧的时序失稳分数 | [0,∞) |
+| $T(x)$ | 适中型指标变换函数 | [0,1] |
+| $\rho$ | Spearman排序相关系数 | [-1,1] |
+| $d_{ij}$ | 样本i在维度j的短板程度 | [0,1] |
+| $P_{ig}$ | 参数g对样本i的调整优先级 | [0,∞) |
+
+---
+
+## 五、数据来源与预处理
+
+### 5.1 数据来源
+
+本文使用附件1提供的8张AI生成图像和附件2提供的1段车流视频作为评估对象。8张图像覆盖写实风景、人物肖像、艺术插画、像素艺术等多种内容类型。车流视频时长5.04秒，共121帧，分辨率为1920×1080。
+
+### 5.2 预处理流程
+
+**图像指标提取**：对每张图像提取15个技术指标，包括分辨率、清晰度（Laplacian方差、Tenengrad梯度）、亮度、饱和度、信息熵、边缘密度、噪声估计、结构代理等。
+
+**多模态审查结构化**：采用GPT-5.5对8张图像进行语义审查，提取主体对象、属性描述、场景关系、风格指令等正向标签，以及手部异常、面部异常、边界融合等惩罚标签，形成结构化参考描述。
+
+**视频抽帧与时序指标**：对车流视频逐帧提取，计算相邻帧间的SSIM、帧差均值、亮度突变、饱和度突变、光流幅值、光流方向变化等时序指标，并引入光流补偿的Warp-SSIM指标。
+
+---
+
+## 六、问题一：AIGC图像质量评价指标体系
+
+### 6.1 三维度指标体系
+
+本文将AI生成图像质量拆解为三个可解释维度：
+
+**语义保真度**（$S_{sem}$）：衡量图像与提示词的匹配程度。由于题目未提供原始提示词，本文采用"等效语义参考描述"方法，由多模态审查生成结构化参考描述，再通过关键词匹配和缺陷标签计算语义得分。
+
+**技术质量**（$S_{tech}$）：衡量图像的清晰度、对比度、信息量等客观技术指标。本文引入适中型指标变换，对亮度和饱和度类指标采用Median-MAD方法，避免"越大越好"的简单假设。
+
+**结构完整性**（$S_{str}$）：衡量图像的边缘质量、物体畸形程度。结合全局代理指标（structure_proxy、edge_density）与局部缺陷惩罚（手部异常、面部异常等）。
+
+### 6.2 语义保真度量化
+
+语义保真度由正向标签得分和惩罚项组成：
+
+$$S_{sem} = 100 \cdot \text{clip}_{[0,1]}(l_i - 0.20 p_i) \tag{1}$$
+
+其中$l_i$为正向标签得分（主体对象、属性描述、场景关系、风格指令的加权和），$p_i$为惩罚项（解剖异常、关系错误、主体缺失的加权和）。
+
+### 6.3 技术质量量化
+
+技术质量由清晰度子块和自然度子块组成：
+
+$$S_{tech} = 100 \cdot (0.65 C_i + 0.35 N_i) \tag{2}$$
+
+其中$C_i$为清晰度得分（laplacian_var、tenengrad、edge_density的加权和），$N_i$为自然度得分（亮度、饱和度经适中型变换后的加权和）。
+
+适中型变换采用Median-MAD方法：
+
+$$T(x) = \max\left(0, 1 - \frac{|x - \tilde{x}|}{c \cdot \text{MAD} + \varepsilon}\right) \tag{3}$$
+
+其中$\tilde{x}$为样本中位数，MAD为中位绝对偏差，$c=2.5$，$\varepsilon=10^{-8}$。该方法不需要预设"理想亮度"，天然适合小样本相对评价。
+
+### 6.4 结构完整性量化
+
+结构完整性由全局代理和局部惩罚组成：
+
+$$S_{str} = 100 \cdot \text{clip}_{[0,1]}(0.45 v_{i1} + 0.15 v_{i2} + 0.25 I_i^{part} + 0.15 G_i) \tag{4}$$
+
+其中$v_{i1}$为structure_proxy归一化值，$v_{i2}$为edge_density归一化值，$I_i^{part}$为部位完整性（由手部、面部、肢体、边界、纹理、文字等缺陷标签计算），$G_i$为几何一致性（由遮挡合理性、透视一致性等标签计算）。
+
+### 6.5 综合质量指数
+
+图像综合质量指数为三维度得分的加权和：
+
+$$Q_{img} = w_{sem} \cdot S_{sem} + w_{tech} \cdot S_{tech} + w_{str} \cdot S_{str} \tag{5}$$
+
+其中权重通过AHP-熵权组合赋权确定（详见第七节）。
+
+---
+
+## 七、问题二：图像综合评价与排序
+
+### 7.1 组合赋权
+
+**AHP主观权重**：构建3×3判断矩阵，体现题目对各维度的重视程度：
+
+$$A = \begin{bmatrix} 1 & 1/2 & 1 \\ 2 & 1 & 2 \\ 1 & 1/2 & 1 \end{bmatrix}$$
+
+计算得AHP权重：$w^{AHP} = (0.25, 0.50, 0.25)$，一致性比率CR = 0.0000 < 0.1。
+
+**熵权法客观权重**：在三维度得分矩阵上计算熵权：
+
+$$e_j = -\frac{1}{\ln m} \sum_{i=1}^{m} p_{ij} \ln(p_{ij} + \varepsilon) \tag{6}$$
+
+$$w_j^E = \frac{1 - e_j}{\sum_j (1 - e_j)} \tag{7}$$
+
+计算得熵权：$w^E = (0.0034, 0.4888, 0.5078)$。语义维度熵权极低，表明各样本语义得分差异很小。
+
+**组合权重**：采用线性加权融合：
+
+$$w_j = \eta \cdot w_j^{AHP} + (1-\eta) \cdot w_j^E \tag{8}$$
+
+取$\eta = 0.6$，得组合权重：$w = (0.1514, 0.4955, 0.3531)$。
+
+### 7.2 TOPSIS综合排序
+
+对三维度得分矩阵进行向量标准化、加权规范化，计算正负理想解和相对贴近度：
+
+$$C_i = \frac{D_i^-}{D_i^+ + D_i^-} \tag{9}$$
+
+按贴近度由大到小排序，结果如表1所示。
+
+**表1 TOPSIS综合排序结果**
+
+| 排名 | 文件名 | $S_{sem}$ | $S_{tech}$ | $S_{str}$ | 贴近度 | 质量等级 |
+|------|--------|-----------|-----------|-----------|--------|----------|
+| 1 | 5.jpg | 94.00 | 81.54 | 93.75 | 0.9867 | 优秀 |
+| 2 | 7.jpg | 94.00 | 74.35 | 77.36 | 0.8392 | 优秀 |
+| 3 | 6.jpg | 92.00 | 69.16 | 77.19 | 0.7945 | 良好 |
+| 4 | 8.jpg | 86.00 | 60.75 | 32.21 | 0.4977 | 一般 |
+| 5 | 1.png | 100.00 | 45.77 | 55.33 | 0.4573 | 一般 |
+| 6 | 2.png | 92.00 | 35.63 | 25.32 | 0.2434 | 较差 |
+| 7 | 3.png | 94.00 | 27.41 | 34.41 | 0.1745 | 较差 |
+| 8 | 4.png | 94.00 | 14.63 | 28.10 | 0.0289 | 较差 |
+
+5.jpg综合质量最高，得益于其在三个维度上的均衡表现（$S_{tech}=81.54$，$S_{str}=93.75$）；4.png质量最低，主要因为技术质量极低（$S_{tech}=14.63$）。
+
+### 7.3 稳健性验证
+
+**灰色关联校验**：以各维度最大值为理想序列，计算灰色关联度，得到GRA排序。TOPSIS与GRA排序的Spearman相关系数为0.976（p<0.001），Kendall相关系数为0.929（p<0.001），Top-3一致率为100%。
+
+**敏感性分析**：进行融合系数变化（$\eta=0.5, 0.6, 0.7$）、AHP矩阵扰动、去掉语义维度、等权方案等6种场景实验。结果表明，所有场景下Top-3排名保持稳定（5.jpg、7.jpg、6.jpg），8张图像的平均排名标准差仅为0.09，最大排名波动为1。
+
+### 7.4 语义观感与综合量化的关系
+
+本文同时采用多模态审查和TOPSIS模型进行评估。多模态审查侧重语义保真度和视觉观感，TOPSIS侧重技术质量和结构完整性。两种方法存在一定差异：1.png在多模态审查中被评为高质量，但TOPSIS排名第5，主要因为其清晰度和对比度指标相对较低；7.jpg在多模态审查中因结构瑕疵被评为中等，但TOPSIS排名第2，得益于其技术指标的均衡表现。这种差异反映了图像质量评价的多维度特性。
+
+### 7.5 样本级短板诊断
+
+对每张图像进行短板诊断，识别最弱维度和主要缺陷。例如，5.jpg虽排名第1，但技术维度仍有提升空间，建议提高分辨率和采样步数；2.png排名第6，主要短板在结构完整性，建议增加结构控制强度。
+
+---
+
+## 八、问题三：视频时序失稳检测
+
+### 8.1 时序指标定义
+
+本文定义7个时序指标：SSIM损失、帧差均值、亮度突变、饱和度突变、光流幅值、光流方向变化、Warp-SSIM损失。其中Warp-SSIM通过光流补偿，从运动补偿后的残余结构差异角度刻画局部时序不一致性。
+
+### 8.2 Warp-SSIM的意义
+
+Warp-SSIM用Farnebäck光流将前一帧warp到当前帧坐标系，再计算SSIM，从运动补偿后的残余结构差异角度刻画局部时序不一致性，辅助区分自然运动波动与潜在生成失稳。本文的分析表明，Warp-SSIM损失均值（0.1460）高于普通SSIM损失均值（0.0930），这表明光流补偿后，局部运动不一致性更加明显。可能原因包括：光流估计在快速运动区域存在误差，或视频中存在光流无法完全补偿的局部运动（如人物表情变化）。
+
+### 8.3 稳健异常检测
+
+为避免异常值干扰，所有时序指标采用稳健z-score标准化：
+
+$$z_t^{(k)} = \max\left(0, \frac{x_t^{(k)} - \text{med}(x^{(k)})}{1.4826 \cdot \text{MAD}(x^{(k)}) + \varepsilon}\right) \tag{10}$$
+
+定义时序失稳分数：
+
+$$I_t = 0.22 z_t^{(1)} + 0.18 z_t^{(2)} + 0.10 z_t^{(3)} + 0.08 z_t^{(4)} + 0.14 z_t^{(5)} + 0.08 z_t^{(6)} + 0.20 z_t^{(7)} \tag{11}$$
+
+当$I_t > \text{med}(I) + 2.5 \cdot \text{MAD}(I)$时，标记为异常帧。本文中的"异常帧"是指候选时序波动帧，而非严重视觉异常。
+
+### 8.4 车流视频分析结果
+
+对车流视频的分析表明：总帧数120帧，异常帧数15帧，异常比例12.5%，时序质量得分57.03。多模态审查确认，视频整体连续性良好，未观察到明显场景切换、人物位置突变或背景断裂。典型异常帧分析如下：
+
+- **帧50（2.08s）**：无明显视觉异常，质量影响低，可能由车外交通流光流变化导致
+- **帧53（2.21s）**：无明显视觉异常，质量影响低，可能由右侧车辆位置变化导致
+- **帧62（2.58s）**：有视觉异常（驾驶员面部变化），质量影响中，可能由自然眨眼/说话导致
+
+---
+
+## 九、参数优化优先级模型
+
+### 9.1 短板诊断模型
+
+本文构建质量短板到参数优化优先级的逆向映射模型。定义短板程度：
+
+$$d_{ij} = \max(0, \theta_j - r_{ij}) \tag{12}$$
+
+其中$\theta_j$为维度j的目标阈值（默认0.80），$r_{ij}$为样本i在维度j的归一化得分。
+
+### 9.2 参数优先级计算
+
+参数优先级定义为：
+
+$$P_{ig} = \sum_j w_j \cdot d_{ij} \cdot \max(m_{jg}, 0) \tag{13}$$
+
+其中$m_{jg}$为参数g对维度j的作用系数。
+
+分析表明，当前最优先的参数调整为：提高分辨率（优先级0.1126）、增加采样步数（优先级0.0943）、增强局部重绘（优先级0.0819）。这反映了当前样本在技术质量维度上存在明显短板。
+
+---
+
+## 十、模型评价与推广
+
+### 10.1 模型优点
+
+1. **可解释性强**：三维度指标体系每个维度有明确的物理/统计意义，便于理解和应用。
+2. **结果可复现**：所有指标由本地代码计算，排序过程可追溯。
+3. **稳健性验证**：通过灰色关联校验和敏感性分析，验证排序结果的可靠性。
+4. **闭环映射**：从质量评价到参数优化建议形成闭环，具有实际应用价值。
+
+### 10.2 模型局限
+
+1. **语义保真度依赖**：由于题目未提供原始提示词，语义保真度依赖多模态审查的结构化标签，存在一定主观性。
+2. **样本量有限**：仅8张图像和1段视频，无法支撑大规模统计推断。
+3. **参数优化验证缺失**：参数优化建议基于理论映射，缺乏实际重生成实验的闭环验证。
+
+### 10.3 推广价值
+
+本文构建的评价框架具有较好的推广价值。三维度指标体系可应用于其他AIGC质量评估场景；AHP-熵权组合赋权方法适用于小样本、多指标的综合评价问题；时序失稳检测模型可扩展到其他视频质量评估任务。
+
+---
+
+## 参考文献
+
+[1] Wang J, Duan H, Liu J, et al. AIGCIQA2023: A Large-scale Image Quality Assessment Database for AI Generated Images: From the Perspectives of Quality, Authenticity and Correspondence[J]. arXiv preprint arXiv:2307.00211, 2023.
+
+[2] Zhang Z, Li C, Sun W, et al. A Perceptual Quality Assessment Exploration for AIGC Images[J]. arXiv preprint arXiv:2303.12618, 2023.
+
+[3] Li J, Wu D, Niu L, et al. TIER: Text-Image Encoder-based Regression for AIGC Image Quality Assessment[J]. arXiv preprint arXiv:2401.03854, 2024.
+
+[4] You Z, Gu J, Li Z, et al. Quality Assessment for AI Generated Images with Instruction Tuning[J]. arXiv preprint arXiv:2405.07346, 2024.
+
+[5] Wang Z, Bovik A C, Sheikh H R, et al. Image Quality Assessment: From Error Visibility to Structural Similarity[J]. IEEE Transactions on Image Processing, 2004, 13(4): 600-612.
+
+[6] Saaty T L. The Analytic Hierarchy Process: Planning, Priority Setting, Resource Allocation[M]. New York: McGraw-Hill, 1980.
+
+[7] Shannon C E. A Mathematical Theory of Communication[J]. The Bell System Technical Journal, 1948, 27(3): 379-423.
+
+[8] Hwang C L, Yoon K. Multiple Attribute Decision Making: Methods and Applications[M]. Berlin: Springer-Verlag, 1981.
+
+[9] Deng J L. Introduction to Grey System Theory[J]. The Journal of Grey System, 1989, 1(1): 1-24.
+
+[10] Farnebäck G. Two-Frame Motion Estimation Based on Polynomial Expansion[C]//Proceedings of the 13th Scandinavian Conference on Image Analysis. Gothenburg, Sweden, 2003: 363-370.
+
+[11] Li L, Lin Y, Wang Z, et al. A Combined AHP-Entropy Method for Deriving Subjective and Objective Criteria Weights[J]. International Journal of Industrial Engineering: Theory, Applications and Practice, 2013, 20(1-2): 1-13.
+
+[12] Ecer F. A Novel Multi-Criteria Decision-Making Model for Building Material Supplier Selection Based on Entropy-AHP Weighted TOPSIS[J]. Entropy, 2020, 22(2): 259.
+
+[13] Gerus-Gościewska M, Gościewski D. Grey Systems Theory as an Effective Method for Analyzing Scarce, Incomplete and Uncertain Data on the Example of a Survey of Public Perceptions of Safety in Urban Spaces[J]. Land, 2021, 10(1): 73.
+
+[14] Hsiao S W, Guo Y H. Application of Grey Relational Analysis to Decision Making during Product Development[J]. EURASIA Journal of Mathematics, Science and Technology Education, 2017, 13(6): 2559-2571.
+
+[15] Daly C, Ramsook D, Kokaram A. An Efficient Quality Metric for Video Frame Interpolation Based on Motion-Field Divergence[C]//Proceedings of the 17th International Conference on Quality of Multimedia Experience. 2025.
+
+[16] Stankowski J, Sojka B, Grajek T, et al. Temporally Aware Objective Quality Metric for Immersive Video[J]. Applied Sciences, 2026, 16(1): 274. （待人工核验）
+
+[17] Wang Z, Lu L, Bovik A C. 3D-SSIM for Video Quality Assessment[C]//Proceedings of the 19th IEEE International Conference on Image Processing. Orlando, FL, USA, 2012: 681-684.
+
+[18] Gunasekar S, Ghosh J, Bovik A C. An Optical Flow-Based Full Reference Video Quality Assessment Algorithm[J]. IEEE Transactions on Image Processing, 2016, 25(6): 2420-2432.
+
+[19] GPT-5.5, GPT-5.5, OpenAI, 2026-06-04
+
+[20] OpenCode, 最新版本, OhMyOpenCode, 2026-06-04
+
+[21] Gemini, 3.1-pro-preview, Google, 2026-06-04
+
+---
+
+## AI工具使用声明
+
+本文在研究过程中使用了OpenCode进行代码组织与文档管理，使用GPT-5.5及Google Gemini多模态模型对题目PDF页面、附件图像与视频关键帧进行语义审查和异常解释。上述AI工具仅用于形成结构化标签与辅助说明，不直接生成本文最终数值结果、模型参数、排序结论或图表。本文所有指标计算、综合评价、敏感性分析、灰关联校验及结果导出均由作者编写程序在本地完成，并经过人工复核。详细说明见支撑材料中"AI工具使用详情说明"。
+
+---
+
+## 附录
+
+附录A：AHP判断矩阵与CR计算
+
+附录B：TOPSIS计算过程
+
+附录C：灰色关联分析详细结果
+
+附录D：敏感性分析详细结果
+
+附录E：参数优化建议详表
+
+附录F：图像指标提取代码核心片段
+
+附录G：视频时序指标计算代码核心片段
