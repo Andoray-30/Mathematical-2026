@@ -25,8 +25,14 @@ Desktop.ini
 .omo/
 .playwright-mcp/
 
-# Large media files (upload separately)
-# B题：AI生成内容的质量评估与参数优化/附件2/车流视频.mp4
+# OpenCode configuration (local only)
+.opencode/
+
+# B题原始资料 (local only, not for GitHub)
+B题：AI生成内容的质量评估与参数优化/
+
+# math-modeling-skill-main (local reference library)
+math-modeling-skill-main/
 
 # Generated files (can be regenerated)
 results/*.csv
