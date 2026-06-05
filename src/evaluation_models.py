@@ -70,7 +70,11 @@ def topsis(data, weights, positive_indicators, negative_indicators, column_names
     dist_worst = np.sqrt(((weighted - ideal_worst)**2).sum(axis=1))
     closeness = dist_worst / (dist_best + dist_worst)
     
-    return {'closeness': closeness, 'rank': np.argsort(-closeness) + 1}
+    order = np.argsort(-closeness)
+    rank = np.empty_like(order)
+    rank[order] = np.arange(1, len(closeness) + 1)
+    
+    return {'closeness': closeness, 'rank': rank}
 
 def assign_quality_levels(closeness):
     levels = []
