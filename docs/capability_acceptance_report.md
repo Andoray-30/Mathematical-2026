@@ -15,8 +15,8 @@
 | PDF 文本提取 | ✅ 通过 | `docs/*_extracted.md` | 无 | 已完成 |
 | PDF 页面渲染 | ✅ 通过 | `figures/pdf_pages/*.png` | 无 | 已完成 |
 | 图片指标计算 | ✅ 通过 | `results/image_metrics.csv` | 无 | 已完成 |
-| 视频抽帧 | ⏳ 待验证 | `src/video_slice.py` | 需 FFmpeg | 安装 FFmpeg |
-| 视频时序指标 | ⏳ 待验证 | `src/video_metrics.py` | 需 FFmpeg | 安装 FFmpeg |
+| 视频抽帧 | ✅ 通过 | `figures/video_frames/*.png` | 无 | 已完成 |
+| 视频时序指标 | ✅ 通过 | `results/video_metrics.csv` | 无 | 已完成 |
 | AHP/熵权/TOPSIS | ✅ 通过 | `results/image_scores.csv` | 无 | 已完成 |
 | Excel 输出 | ✅ 通过 | `results/results.xlsx` | 无 | 已完成 |
 | 图表输出 | ✅ 通过 | `figures/*.png`, `figures/*.svg` | 无 | 已完成 |
@@ -303,7 +303,7 @@ B 题AI 生成内容的质量评估与参数优化
 - ✅ 图片指标计算（10 个指标）
 - ✅ AHP/熵权法/TOPSIS 综合评价
 - ✅ Excel 和图表输出
-- ⏳ 视频处理（需安装 FFmpeg）
+- ✅ 视频抽帧与时序指标计算
 
 ### 3. 当前哪些能力仍只是参考文档？
 
@@ -312,14 +312,15 @@ B 题AI 生成内容的质量评估与参数优化
 ### 4. 还缺哪些环境或脚本？
 
 **答案**:
-- ❌ FFmpeg（视频处理必需）
+- ✅ 暂无关键环境缺失
 - ✅ Python 3.12（已安装）
+- ✅ FFmpeg 8.1.1（已安装）
 - ✅ 所有依赖包（已安装）
 - ✅ 所有脚本（已创建并验证）
 
 ### 5. 是否可以进入正式 B 题建模分析阶段？
 
-**答案**: **是**（视频处理除外）
+**答案**: **是**，已完成 PDF、图片、视频、评价模型、Excel、图表基础工具链验收；下一步是 GPT-5.5 多模态审查和正式论文建模。
 
 **已完成**:
 - ✅ 图像质量评价全流程
@@ -327,7 +328,6 @@ B 题AI 生成内容的质量评估与参数优化
 - ✅ Excel 和图表输出
 
 **待完成**:
-- ⏳ 安装 FFmpeg 后运行视频处理
 - ⏳ GPT-5.5 多模态审查
 - ⏳ 正式论文撰写
 
@@ -335,24 +335,12 @@ B 题AI 生成内容的质量评估与参数优化
 
 ## 下一步操作
 
-### 第一步：安装 FFmpeg（视频处理）
-```powershell
-winget install Gyan.FFmpeg
-```
-
-### 第二步：运行视频处理
-```powershell
-cd "F:\Mathematical 2026"
-.\.venv\Scripts\python.exe src/video_slice.py
-.\.venv\Scripts\python.exe src/video_metrics.py
-```
-
-### 第三步：多模态审查
+### 第一步：GPT-5.5 多模态审查
 - 让 GPT-5.5 审查 `figures/pdf_pages/*.png`
 - 让 GPT-5.5 审查 `figures/video_contact_sheet.png`
 - 输出 `docs/vision_review.md`
 
-### 第四步：开始正式建模
+### 第二步：开始正式建模
 - 读取 `docs/problem_statement.md`
 - 按照 `docs/skill_to_b_problem_mapping.md` 的路线
 - 开始 B 题分析
@@ -361,7 +349,7 @@ cd "F:\Mathematical 2026"
 
 ## 验收结论
 
-**总体状态**: ✅ 基本通过（视频处理待 FFmpeg 安装）
+**总体状态**: ✅ 通过（基础工具链验收完成）
 
 **已完成**:
 - ✅ Skill 加载能力
@@ -370,18 +358,17 @@ cd "F:\Mathematical 2026"
 - ✅ PDF 文本提取
 - ✅ PDF 页面渲染
 - ✅ 图片指标计算
+- ✅ 视频抽帧和时序指标
 - ✅ AHP/熵权/TOPSIS 综合评价
 - ✅ Excel 输出
 - ✅ 图表输出
 - ✅ 多模态分工交接
 
 **待完成**:
-- ⏳ FFmpeg 安装
-- ⏳ 视频抽帧和时序指标
 - ⏳ GPT-5.5 多模态审查
 - ⏳ 正式论文撰写
 
-**建议**: 安装 FFmpeg 后即可进入完整 B 题建模分析阶段
+**建议**: 已完成基础工具链验收，可进入正式 B 题建模分析阶段
 
 ---
 
