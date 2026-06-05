@@ -1,0 +1,11 @@
+parameter,priority_score,direction,affected_dimensions,semantic_effect,technical_effect,structural_effect,temporal_effect,rank
+resolution,0.1126,increase,technical,0.1,0.8,0.3,0.0,1
+sampling_steps,0.0943,increase,technical,0.1,0.7,0.2,0.0,2
+local_inpainting,0.0819,increase,structural,0.1,0.3,0.7,0.0,3
+structure_control_strength,0.0772,increase,structural,0.2,0.2,0.8,0.0,4
+color_brightness_rescale,0.069,increase,technical,0.0,0.5,0.1,0.2,5
+cfg_scale,0.0481,increase,semantic,0.5,0.3,0.2,0.0,6
+frame_interpolation_or_smoothing,0.0459,increase,temporal,0.0,0.2,0.1,0.7,7
+negative_prompt_strength,0.0434,increase,,0.3,0.2,0.3,0.0,8
+temporal_consistency_control,0.039,increase,temporal,0.0,0.1,0.1,0.9,9
+prompt_detail,0.0251,increase,semantic,0.8,0.1,0.2,0.0,10

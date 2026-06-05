@@ -1,0 +1,2 @@
+total_frames,frames_analyzed,fps,duration,anomaly_count,anomaly_ratio,threshold,instability_mean,instability_std,instability_median,instability_mad,S_temp,ssim_loss_mean,warp_ssim_loss_mean,warp_ssim_improvement
+121,120,23.999999841322314,5.0416667,15,0.125,0.9718095032679329,0.456111828836609,0.41673653331977634,0.34013883377846976,0.2526682677957853,57.02625884718746,0.09303883376878093,0.14597662305652295,-0.052937789287742024

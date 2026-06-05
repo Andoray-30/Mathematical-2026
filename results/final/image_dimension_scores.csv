@@ -1,0 +1,9 @@
+filename,S_sem,S_tech,S_str,semantic_penalty,structural_penalty,diagnostic_noise,notes
+1.png,100.0,45.77,55.33,0.0,0.15,16.4624,structural_penalty=0.15
+2.png,92.0,35.63,25.32,0.4,0.6,6.3428,semantic_penalty=0.40; structural_penalty=0.60
+3.png,94.0,27.41,34.41,0.3,0.3,8.5064,semantic_penalty=0.30; structural_penalty=0.30
+4.png,94.0,14.63,28.1,0.3,0.5,3.3368,semantic_penalty=0.30; structural_penalty=0.50
+5.jpg,94.0,81.54,93.75,0.3,0.25,60.2754,semantic_penalty=0.30; structural_penalty=0.25
+6.jpg,92.0,69.16,77.19,0.4,0.25,30.3299,semantic_penalty=0.40; structural_penalty=0.25
+7.jpg,94.0,74.35,77.36,0.3,0.0,45.3006,semantic_penalty=0.30
+8.jpg,86.0,60.75,32.21,0.7,0.85,18.8639,semantic_penalty=0.70; structural_penalty=0.85

@@ -1,0 +1,9 @@
+filename,subject_ok,attribute_ok,scene_ok,relation_ok,style_ok,anatomy_error,relation_error,missing_subject,hand_error,face_error,limb_error,boundary_error,texture_artifact,text_artifact,geometry_ok,occlusion_ok,perspective_ok,semantic_notes,structure_notes,confidence
+1.png,1,1,1,1,1,0,0,0,0,0,0,1,0,0,1,1,1,,,0.8
+2.png,1,1,1,1,1,1,0,0,1,1,0,0,1,0,1,1,1,,,0.8
+3.png,1,1,1,1,1,0,1,0,0,0,1,1,0,0,1,1,1,,,0.8
+4.png,1,1,1,1,1,0,1,0,0,1,1,1,0,0,1,1,1,,,0.8
+5.jpg,1,1,1,1,1,0,1,0,0,0,0,0,1,1,1,1,1,,,0.8
+6.jpg,1,1,1,1,1,1,0,0,1,0,0,0,0,0,1,1,1,,,0.8
+7.jpg,1,1,1,1,1,0,1,0,0,0,0,0,0,0,0,1,0,,,0.8
+8.jpg,1,1,1,1,1,1,1,0,1,1,1,0,1,1,0,1,0,,,0.8

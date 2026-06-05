@@ -1,0 +1,11 @@
+parameter,semantic,technical,structural,temporal
+prompt_detail,0.8,0.1,0.2,0.0
+negative_prompt_strength,0.3,0.2,0.3,0.0
+cfg_scale,0.5,0.3,0.2,0.0
+sampling_steps,0.1,0.7,0.2,0.0
+resolution,0.1,0.8,0.3,0.0
+structure_control_strength,0.2,0.2,0.8,0.0
+local_inpainting,0.1,0.3,0.7,0.0
+temporal_consistency_control,0.0,0.1,0.1,0.9
+color_brightness_rescale,0.0,0.5,0.1,0.2
+frame_interpolation_or_smoothing,0.0,0.2,0.1,0.7
