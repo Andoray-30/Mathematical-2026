@@ -12,34 +12,68 @@ import re
 import csv
 from pathlib import Path
 
-# Project root
 ROOT = Path(__file__).parent.parent
 
-# File paths
 VISION_REVIEW = ROOT / "docs" / "vision_review.md"
 OUTPUT_DIR = ROOT / "results" / "intermediate"
 OUTPUT_FILE = OUTPUT_DIR / "vision_labels.csv"
 
-# Image files (8 images)
 IMAGE_FILES = [
     "1.png", "2.png", "3.png", "4.png",
     "5.jpg", "6.jpg", "7.jpg", "8.jpg"
 ]
 
-# Quality level mapping
 QUALITY_MAP = {
     "高": 1.0,
     "中": 0.6,
     "低": 0.3
 }
 
-# Severity mapping
-SEVERITY_MAP = {
-    "轻微": 0.2,
-    "中等": 0.5,
-    "严重": 0.8,
-    "无": 0.0
-}
+
+def extract_field(text, field_name):
+    """Extract a field value from the section text."""
+    pattern = rf'\*\*{field_name}\*\*[：:]\s*(.*?)(?=\n- \*\*|\n###|\Z)'
+    match = re.search(pattern, text, re.DOTALL)
+    if match:
+        value = match.group(1).strip()
+        value = re.sub(r'\n', ' ', value)
+        return value
+    return ''
+
+
+def count_uncertain_items(text):
+    """Count uncertain items and assess their strength."""
+    uncertain_section = extract_field(text, '不确定项')
+    if not uncertain_section:
+        return 0, 0.8
+    
+    items = re.split(r'[；;]', uncertain_section)
+    items = [item.strip() for item in items if item.strip()]
+    
+    strong_uncertain = 0
+    for item in items:
+        if any(keyword in item for keyword in ['无法确认', '不确定', '不能确认', '无法判断']):
+            strong_uncertain += 1
+    
+    return len(items), strong_uncertain
+
+
+def calculate_confidence(uncertain_count, strong_uncertain, quality_level):
+    """Calculate confidence based on uncertainty and quality."""
+    base_confidence = 0.9
+    
+    uncertainty_penalty = uncertain_count * 0.05
+    strong_penalty = strong_uncertain * 0.1
+    
+    if quality_level == '高':
+        quality_bonus = 0.05
+    elif quality_level == '中':
+        quality_bonus = 0.0
+    else:
+        quality_bonus = -0.1
+    
+    confidence = base_confidence - uncertainty_penalty - strong_penalty + quality_bonus
+    return max(0.3, min(0.95, confidence))
 
 
 def parse_vision_review(filepath):
@@ -47,17 +81,31 @@ def parse_vision_review(filepath):
     with open(filepath, 'r', encoding='utf-8') as f:
         content = f.read()
     
-    # Split by image sections - use the actual format from vision_review.md
-    # Format: ### 2.X 图像 filename (description)
     image_sections = re.split(r'### 2\.\d+ 图像 \S+', content)
     
     results = []
     
-    for i, section in enumerate(image_sections[1:], 0):  # Skip first section (before images)
+    for i, section in enumerate(image_sections[1:], 0):
         if i >= len(IMAGE_FILES):
             break
             
         filename = IMAGE_FILES[i]
+        
+        quality_match = re.search(r'质量判断[：:]\s*\*\*(\S+)\*\*', section)
+        quality_level = quality_match.group(1) if quality_match else '中'
+        quality_score = QUALITY_MAP.get(quality_level, 0.6)
+        
+        ai_defects = extract_field(section, 'AI生成瑕疵')
+        structure_integrity = extract_field(section, '结构完整性')
+        semantic_fidelity = extract_field(section, '语义保真度')
+        uncertain_items = extract_field(section, '不确定项')
+        
+        uncertain_count, strong_uncertain = count_uncertain_items(section)
+        confidence = calculate_confidence(uncertain_count, strong_uncertain, quality_level)
+        
+        semantic_notes = f"语义保真度: {semantic_fidelity[:150]}" if semantic_fidelity else ""
+        structure_notes = f"结构完整性: {structure_integrity[:150]}" if structure_integrity else ""
+        
         label = {
             'filename': filename,
             'subject_ok': 1,
@@ -77,74 +125,53 @@ def parse_vision_review(filepath):
             'geometry_ok': 1,
             'occlusion_ok': 1,
             'perspective_ok': 1,
-            'semantic_notes': '',
-            'structure_notes': '',
-            'confidence': 0.8
+            'semantic_notes': semantic_notes,
+            'structure_notes': structure_notes,
+            'confidence': round(confidence, 2),
+            'vision_quality_level': quality_level,
+            'vision_quality_score': quality_score,
+            'ai_defects_summary': ai_defects[:200] if ai_defects else "",
+            'uncertain_items_count': uncertain_count
         }
         
-        # Extract quality judgment
-        quality_match = re.search(r'质量判断[：:]\s*\*\*(\S+)\*\*', section)
-        if quality_match:
-            quality = quality_match.group(1)
-            label['quality_level'] = QUALITY_MAP.get(quality, 0.6)
-        
-        # Get full section text for analysis
         section_lower = section.lower()
         
-        # Check for hand errors - look for hand-related issues
         if re.search(r'手[部指].*?(不清晰|结构|边界|可疑|不够准确|形态)', section_lower):
             label['hand_error'] = 1
             label['anatomy_error'] = 1
         
-        # Check for face errors
         if re.search(r'面部|五官', section_lower):
             label['face_error'] = 1
         
-        # Check for boundary errors
         if re.search(r'边界.*?(融合|不够明确|不清)|融合.*?边界', section_lower):
             label['boundary_error'] = 1
         
-        # Check for texture artifacts
         if re.search(r'纹理.*?(粘连|重复|模糊)|笔触|涂抹|团块', section_lower):
             label['texture_artifact'] = 1
         
-        # Check for text artifacts
         if re.search(r'伪文字|文字.*?不可辨|签名', section_lower):
             label['text_artifact'] = 1
         
-        # Check for relation errors
         if re.search(r'关系.*?(不清|含混|混乱|不够严谨|不明确)', section_lower):
             label['relation_error'] = 1
         
-        # Check for limb errors
         if re.search(r'肢体|四肢|腿部|手臂', section_lower):
             label['limb_error'] = 1
         
-        # Check for geometry/perspective issues
         if re.search(r'透视.*?(混乱|不自然|不严谨)|透视关系较混乱', section_lower):
             label['perspective_ok'] = 0
             label['geometry_ok'] = 0
         
-        # Check semantic fidelity
         if re.search(r'主体明确|主体清晰', section_lower):
             label['subject_ok'] = 1
         elif re.search(r'主体.*?(不明确|无法确认|不可靠确认)', section_lower):
             label['subject_ok'] = 0
             label['missing_subject'] = 1
         
-        # Check style consistency
         if re.search(r'风格一致|风格统一', section_lower):
             label['style_ok'] = 1
         elif re.search(r'风格.*?(不一致|降低)', section_lower):
             label['style_ok'] = 0
-        
-        # Extract notes from uncertain items
-        uncertain_match = re.search(r'不确定项[：:](.*?)(?=\n###|\Z)', section, re.DOTALL)
-        if uncertain_match:
-            notes_text = uncertain_match.group(1).strip()
-            notes_text = re.sub(r'\n- ', '; ', notes_text)
-            notes_text = re.sub(r'\n', ' ', notes_text)
-            label['semantic_notes'] = notes_text[:200]
         
         results.append(label)
     
@@ -176,7 +203,11 @@ def generate_template_csv():
             'perspective_ok': 1,
             'semantic_notes': 'Manual review needed',
             'structure_notes': '',
-            'confidence': 0.5
+            'confidence': 0.5,
+            'vision_quality_level': '中',
+            'vision_quality_score': 0.6,
+            'ai_defects_summary': '',
+            'uncertain_items_count': 0
         })
     return template
 
@@ -191,14 +222,15 @@ def save_csv(labels, filepath):
         'hand_error', 'face_error', 'limb_error', 'boundary_error',
         'texture_artifact', 'text_artifact',
         'geometry_ok', 'occlusion_ok', 'perspective_ok',
-        'semantic_notes', 'structure_notes', 'confidence'
+        'semantic_notes', 'structure_notes', 'confidence',
+        'vision_quality_level', 'vision_quality_score',
+        'ai_defects_summary', 'uncertain_items_count'
     ]
     
     with open(filepath, 'w', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         for label in labels:
-            # Only write fields that are in fieldnames
             row = {k: v for k, v in label.items() if k in fieldnames}
             writer.writerow(row)
     
@@ -211,7 +243,6 @@ def main():
     print("Phase 1: Vision Review to CSV Converter")
     print("=" * 60)
     
-    # Check if vision_review.md exists
     if not VISION_REVIEW.exists():
         print(f"Error: {VISION_REVIEW} not found!")
         print("Generating template CSV instead...")
@@ -220,21 +251,17 @@ def main():
         print(f"Parsing {VISION_REVIEW}...")
         labels = parse_vision_review(VISION_REVIEW)
         
-        # If parsing failed or returned empty, use template
         if not labels:
             print("Warning: Parsing returned no results. Using template...")
             labels = generate_template_csv()
         else:
             print(f"Successfully parsed {len(labels)} image reviews")
     
-    # Save to CSV
     save_csv(labels, OUTPUT_FILE)
     
-    # Print summary
     print("\nSummary:")
     print(f"  Total images: {len(labels)}")
     
-    # Count errors
     error_counts = {
         'hand_error': sum(1 for l in labels if l.get('hand_error', 0)),
         'face_error': sum(1 for l in labels if l.get('face_error', 0)),
@@ -247,6 +274,10 @@ def main():
     for error_type, count in error_counts.items():
         if count > 0:
             print(f"    {error_type}: {count} images")
+    
+    print("\n  Quality levels:")
+    for label in labels:
+        print(f"    {label['filename']}: {label['vision_quality_level']} (confidence={label['confidence']})")
     
     print("\nDone!")
     return 0

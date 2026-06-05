@@ -51,6 +51,7 @@ def ahp_weights(matrix):
     ri = RI[n - 1] if n <= len(RI) else 1.49
     
     CR = CI / ri if ri > 0 else 0
+    CR = max(CR, 0)  # Avoid negative floating point errors
     
     return w, CR
 

@@ -1,0 +1,9 @@
+filename,rank,quality_level,S_sem,S_tech,S_str,weakest_dimension,main_defect,recommended_parameter_1,recommended_parameter_2,reason
+5.jpg,1,优秀,94.0,81.54,93.75,technical,纹理伪影; 伪文字; 空间关系不清,resolution,sampling_steps,technical维度得分最低，主要缺陷: 纹理伪影; 伪文字; 空间关系不清
+7.jpg,2,优秀,94.0,74.35,77.36,technical,空间关系不清; 透视/几何问题,resolution,prompt_detail,technical维度得分最低，主要缺陷: 空间关系不清; 透视/几何问题
+6.jpg,3,良好,92.0,69.16,77.19,technical,手部结构异常; 解剖结构错误,resolution,structure_control_strength,technical维度得分最低，主要缺陷: 手部结构异常; 解剖结构错误
+8.jpg,4,一般,86.0,60.75,32.21,structural,手部结构异常; 面部细节问题; 肢体结构问题,structure_control_strength,structure_control_strength,structural维度得分最低，主要缺陷: 手部结构异常; 面部细节问题; 肢体结构问题
+1.png,5,一般,100.0,45.77,55.33,technical,边界融合问题,resolution,structure_control_strength,technical维度得分最低，主要缺陷: 边界融合问题
+2.png,6,较差,92.0,35.63,25.32,structural,手部结构异常; 面部细节问题; 纹理伪影,structure_control_strength,structure_control_strength,structural维度得分最低，主要缺陷: 手部结构异常; 面部细节问题; 纹理伪影
+3.png,7,较差,94.0,27.41,34.41,technical,肢体结构问题; 边界融合问题; 空间关系不清,resolution,structure_control_strength,technical维度得分最低，主要缺陷: 肢体结构问题; 边界融合问题; 空间关系不清
+4.png,8,较差,94.0,14.63,28.1,technical,面部细节问题; 肢体结构问题; 边界融合问题,resolution,structure_control_strength,technical维度得分最低，主要缺陷: 面部细节问题; 肢体结构问题; 边界融合问题

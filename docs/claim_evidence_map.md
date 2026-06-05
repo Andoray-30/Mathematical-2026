@@ -21,6 +21,11 @@
 | C10 | Problem 1 | Technical dimension uses moderate-type transform | results/final/image_dimension_scores.csv | - | src/dimension_scores.py | Closed |
 | C11 | Problem 3 | Warp-SSIM separates natural motion from artifacts | results/final/video_metrics.csv | Figure 8 | - | Closed |
 | C12 | Problem 1 | noise_estimate is diagnostic only, not in main score | src/dimension_scores.py | - | - | Closed |
+| C13 | Problem 2 | 1.png semantic review high but TOPSIS rank 5 | docs/ranking_interpretation_notes.md | - | results/final/image_dimension_scores.csv | Closed |
+| C14 | Problem 2 | 7.jpg multimodal review medium but TOPSIS rank 2 | docs/ranking_interpretation_notes.md | - | results/final/image_dimension_scores.csv | Closed |
+| C15 | Problem 3 | 15 anomaly frames are candidate temporal fluctuations | docs/video_interpretation_notes.md | - | results/final/video_anomaly_frames.csv | Closed |
+| C16 | Problem 3 | Warp-SSIM improvement is negative (not "improvement") | docs/video_interpretation_notes.md | - | results/final/video_metrics.csv | Closed |
+| C17 | Problem 2 | Per-image shortfall diagnosis available | results/final/image_shortfall_diagnosis.csv | - | - | Closed |
 
 ---
 
