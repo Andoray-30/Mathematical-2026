@@ -219,18 +219,49 @@ B 题AI 生成内容的质量评估与参数优化
 
 ---
 
-### 10. 视频处理 ⏳
+### 10. 视频处理 ✅
 
 **验收项**: 能否处理车流视频
 
-**结果**: 待验证（需安装 FFmpeg）
+**结果**: 通过
 
-**问题**: FFmpeg 未安装，无法进行视频抽帧和时序指标计算
+**证据**:
+- FFmpeg 8.1.1 已安装
+- `figures/video_contact_sheet.png` - 视频关键帧拼图
+- `figures/video_frames/*.png` - 121 帧视频截图
+- `results/video_metrics.csv` - 视频时序指标（120 行）
+- `results/video_anomaly_frames.csv` - 异常帧列表（3 帧）
 
-**解决方案**:
-```powershell
-winget install Gyan.FFmpeg
-```
+**视频信息**:
+| 属性 | 值 |
+|------|-----|
+| 文件名 | 车流视频.mp4 |
+| FPS | 23.999999 |
+| 总帧数 | 121 |
+| 时长 | 5.04 秒 |
+
+**时序指标**:
+| 指标 | 说明 |
+|------|------|
+| ssim_prev | 帧间结构相似性 |
+| frame_diff_mean | 帧差均值 |
+| brightness_delta | 亮度变化 |
+| saturation_delta | 饱和度变化 |
+| optical_flow_magnitude_mean | 光流幅值 |
+| optical_flow_angle_change | 光流方向变化 |
+| instability_score | 时序失稳分数 |
+
+**异常帧检测**:
+| 帧索引 | 时间戳 | instability_score |
+|--------|--------|-------------------|
+| 50 | 2.08s | 0.1091 |
+| 53 | 2.21s | 0.1276 |
+| 62 | 2.58s | 0.1242 |
+
+**图表生成**:
+- `figures/video_ssim.png/svg` - SSIM 曲线
+- `figures/video_frame_diff.png/svg` - 帧差曲线
+- `figures/anomaly_detection.png/svg` - 异常帧定位图
 
 ---
 
