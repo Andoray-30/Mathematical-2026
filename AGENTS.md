@@ -6,6 +6,8 @@
 
 **B 题名称**：AI 生成内容的质量评估与参数优化
 
+**当前阶段**：能力验收完成，进入正式建模准备阶段
+
 ---
 
 ## 事实源优先级
@@ -61,7 +63,26 @@
 - 视频异常帧语义解释
 - 论文逻辑和表达审稿
 
-### 关键约束
+### 多模态路由策略
+
+**Sisyphus 不支持图片输入**，多模态任务路由如下：
+
+| 任务类型 | 执行者 | 说明 |
+|----------|--------|------|
+| 图像技术指标 | Sisyphus | OpenCV/SSIM/光流计算 |
+| 视频时序指标 | Sisyphus | 帧差/光流/异常检测 |
+| 图像语义描述 | GPT-5.5 | 物体/场景/风格识别 |
+| 视觉异常识别 | GPT-5.5 | 伪影/扭曲/不一致 |
+| 语义保真度审查 | GPT-5.5 | 提示词匹配度 |
+
+**推荐 Agent**：
+- 首选：`@sisyphus-junior`、`@hephaestus`
+- 备选：`@oracle`、`@metis`、`@momus`
+- 不推荐：`@multimodal-looker`（Gemini 模型可能超时）
+
+---
+
+## 关键约束
 
 1. **所有可量化指标必须由本地代码生成**
    - 不允许 GPT-5.5 直接凭视觉感觉生成数值结果
@@ -87,23 +108,25 @@
 
 ```
 F:\Mathematical 2026\
-├── AGENTS.md                    # 本文件
-├── requirements.txt             # Python 依赖
+├── AGENTS.md                       # 本文件
+├── requirements.txt                # Python 依赖
 ├── 中青杯数学建模2026规则文档.md
-├── B题：AI生成内容的质量评估与参数优化/
-│   ├── B题：AI生成内容的质量评估与参数优化.pdf
-│   ├── 附件1/ (8张图片)
-│   ├── 附件2/ (车流视频.mp4)
-│   └── ...
-├── math-modeling-skill-main/    # 参考能力库
-├── docs/                        # 文档目录
+├── B题：AI生成内容的质量评估与参数优化/  # 原始赛题资料（只读）
+├── math-modeling-skill-main/       # 参考能力库（只读）
+├── archive/                        # 归档目录
+│   └── capability_test_2026-06-04/ # 能力验收阶段产物
+├── docs/                           # 核心文档
 │   ├── project_inventory.md
-│   ├── skill_extracted_*.md
 │   ├── environment_setup.md
-│   ├── vision_review.md
-│   └── adaptation_report.md
-├── src/                         # 源代码
+│   ├── skill_to_b_problem_mapping.md
+│   ├── vision_review_input_manifest.md
+│   ├── vision_review_test.md
+│   ├── workspace_cleanup_report.md
+│   ├── capability_acceptance_summary.md
+│   └── multimodal_routing_policy.md
+├── src/                            # 源代码
 │   ├── check_env.py
+│   ├── smoke_test.py
 │   ├── extract_pdf.py
 │   ├── extract_docx.py
 │   ├── inspect_media.py
@@ -114,23 +137,18 @@ F:\Mathematical 2026\
 │   ├── export_excel.py
 │   ├── plot_results.py
 │   └── main.py
-├── results/                     # 结果数据
-│   ├── *.csv
-│   └── results.xlsx
-├── figures/                     # 图表
-│   ├── *.png
-│   ├── *.svg
-│   ├── pdf_pages/
-│   ├── video_frames/
-│   └── video_contact_sheet.png
-├── paper/                       # 论文
-│   ├── outline.md
-│   ├── draft.md
-│   └── claim_evidence_map.md
-├── support/                     # 支撑材料
+├── results/                        # 结果数据
+│   ├── final/                      # 正式建模最终结果
+│   └── intermediate/               # 正式建模中间表格
+├── figures/                        # 图表
+│   ├── final/                      # 正式论文图表
+│   ├── intermediate/               # 探索分析图
+│   └── vision_inputs/              # GPT-5.5 输入材料
+├── paper/                          # 论文
+├── support/                        # 支撑材料
 │   ├── ai_usage_log.md
 │   └── README.md
-└── .opencode/                   # OpenCode 配置
+└── .opencode/                      # OpenCode 配置
     ├── skills/
     │   ├── math-modeling/
     │   └── aigc-quality-eval/
@@ -156,10 +174,11 @@ F:\Mathematical 2026\
    - `src/` 目录下所有 Python 脚本
 
 4. **原始数据和派生数据**
-   - `results/` 目录下所有 CSV 和 Excel
+   - `results/final/` 目录下最终结果
+   - `results/intermediate/` 目录下中间表格
 
 5. **图表**
-   - `figures/` 目录下所有 PNG 和 SVG
+   - `figures/final/` 目录下正式论文图表
 
 6. **AI 工具使用说明**
    - `support/ai_usage_log.md`
@@ -178,6 +197,7 @@ F:\Mathematical 2026\
 5. ❌ 让 GPT-5.5 直接生成数值指标
 6. ❌ 静默跳过失败步骤
 7. ❌ 使用 look_at 作为主流程
+8. ❌ 将测试结果散落在 results/ 根目录
 
 ---
 
@@ -223,6 +243,23 @@ F:\Mathematical 2026\
 - 光流方向变化
 - 时序失稳惩罚项
 - 异常帧定位
+
+---
+
+## 已验证能力
+
+| 能力 | 状态 | 说明 |
+|------|------|------|
+| Skill 加载 | ✅ | math-modeling 和 aigc-quality-eval |
+| PDF 文本提取 | ✅ | B 题完整文字已提取 |
+| PDF 页面渲染 | ✅ | 3 张页面图片 |
+| 图片指标计算 | ✅ | 8 张图片 × 15 个指标 |
+| 视频抽帧 | ✅ | 121 帧已提取 |
+| 视频时序指标 | ✅ | SSIM、帧差、光流等 |
+| AHP/熵权/TOPSIS | ✅ | 排名逻辑已修复 |
+| Excel 输出 | ✅ | results.xlsx 已生成 |
+| 图表输出 | ✅ | PNG 和 SVG 图表 |
+| GPT-5.5 多模态审查 | ✅ | 测试通过 |
 
 ---
 
